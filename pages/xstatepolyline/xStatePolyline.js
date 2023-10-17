@@ -11,18 +11,71 @@ const stage = new Konva.Stage({
 const layer = new Konva.Layer();
 stage.add(layer);
 
-const MAX_POINTS = 10;
+const MAX_POINTS = 11;
 let polyline // La polyline en cours de construction;
 
 const polylineMachine = createMachine(
     {
-        /** @xstate-layout N4IgpgJg5mDOIC5gF8A0IB2B7CdGgAcsAbATwBkBLDMfEI2SgF0qwzoA9EBaANnVI9eAOgAM4iZMkB2ZGnokK1MMMoRitJAsYs2nRABYATAMQAOAIzCD0gJwXetgwGZezgw9ty5QA */
-        id: "polyLine",
+        /** @xstate-layout N4IgpgJg5mDOIC5QCcCuAjdZkCFkEMA7CAS0KgDoSIAbMAYgFkB5AVQGUBRAYQBkBJbgGkA2gAYAuolAAHAPawSAFxJzC0kAA9EAFgCsAJgoBOU8YAcegIwB2AMzmdYuwBoQAT0TmrFA2dNi5jZiOnZWxgC+EW5omNh4RKTkFAAiBADuZFBMbFwsAGqc4lJIIPKKKmoa2gh6YhQ63gZ6OjYG7cZ6LQBsbp4IBjY2FHY2OhbGjVaDBvpRMRhYuATEWakZWTkcnAVFViWyCsqq6qU1dnbGFN3NYgbmjmJ69uZ9iLbd1+OdhqbdYzd5iBYksEqtkml8JlyFsuHxBKJJBpyscqmd3ncKFZRnU7N1AmNjPc3ggrOYjHdxuY7hdumSukCQfEVklKJDodkcPgAMYAa1gMh5YGKyKOlVOoBqOgMJPMn3+42CFj0xm6Om6ekZi2ZiTW7M2nEISmwItKKPF1UQFyuNzq90ezwcJMGPn8apa9nuDOiwO1y11EI2MM4sG5+BkwqRZrFJ0tCGt11u9qcjteHit-xG33sNkmFmaUR9hDkEDgGiZ-vBUFFFVj6IQAFpeunG90tXFK6yqLQwDXURKtIhbSM6mIxP9VcYrF1nUSKM9xt87GJjDY5e3QSy9UHq9Ha2jJe8DD5j81jwCdDpbHoSaNhm1vkF7kS1YWIkA */
+        id: "rubberBranding",
         initial: "idle",
-        states : {
-            idle: {
-            }
-        }
+        states: {
+          idle: {
+            on: {
+              MOUSECLICK: {
+                target: "Drawing",
+                actions: {
+                  type: "createLine",
+                },
+              },
+            },
+          },
+          Drawing: {
+            on: {
+              MOUSEMOVE: [
+                {
+                  target: "Drawing",
+                  cond: "pasPlein",
+                  actions: {
+                    type: "setLastPoint",
+                  },
+                },
+                {
+                  target: "idle",
+                  actions: {
+                    type: "saveLine",
+                  },
+                },
+              ],
+              MOUSECLICK: {
+                target: "Drawing",
+                actions: {
+                  type: "addPoint",
+                },
+              },
+              Backspace: {
+                target: "Drawing",
+                cond: "plusDeDeuxPoints",
+                actions: {
+                  type: "removeLastPoint",
+                },
+              },
+              Enter: {
+                target: "idle",
+                cond: "plusDeDeuxPoints",
+                actions: {
+                  type: "saveLine",
+                },
+              },
+              Escape: {
+                target: "idle",
+                actions: {
+                  type: "abandon",
+                },
+              },
+            },
+          },
+        },
     },
     // Quelques actions et guardes que vous pouvez utiliser dans votre machine
     {
@@ -86,7 +139,7 @@ const polylineMachine = createMachine(
             // On peut enlever un point
             plusDeDeuxPoints: (context, event) => {
                 // Deux coordonnées pour chaque point, plus le point provisoire
-                return polyline.points().length > 6;
+                return polyline.points().length > 4;
             },
         },
     }
@@ -98,6 +151,7 @@ const polylineService = interpret(polylineMachine)
         console.log("Current state:", state.value);
     })
     .start();
+
 // On envoie les événements à la machine
 stage.on("click", () => {
     polylineService.send("MOUSECLICK");
